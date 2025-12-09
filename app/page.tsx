@@ -3,16 +3,21 @@
 export default function HomePage() {
   return (
     <div
-      className="relative flex h-full items-center justify-center px-4 bg-cover bg-center bg-no-repeat"
+      className="relative flex h-full items-center justify-center px-4 bg-cover bg-center bg-no-repeat bg-fixed"
       style={{
-        backgroundImage: 'url("/high-voltage.jpg")', // <-- make sure the image is inside /public
+        backgroundImage: 'url("/high-voltage.jpg")', // in /public
       }}
     >
-      {/* Optional dark overlay for readability */}
-      <div className="absolute inset-0 bg-black/40"></div>
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-black/40" />
+
+      {/* Demo badge */}
+      <div className="absolute top-4 right-4 rounded-full bg-sky-700/90 px-4 py-1 text-xs font-semibold text-white shadow">
+        Demo Mode
+      </div>
 
       {/* Sign-in Card */}
-      <div className="relative w-full max-w-xl rounded-2xl bg-white/90 backdrop-blur-md p-10 shadow-xl border border-white/40 mt-10">
+      <div className="relative w-full max-w-xl rounded-2xl bg-white/90 backdrop-blur-md p-10 shadow-xl border border-white/40 mt-10 fade-in-up">
         {/* Header */}
         <div className="mb-8">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
