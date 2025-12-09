@@ -1,62 +1,89 @@
-export default function Dashboard() {
+"use client";
+
+export default function HomePage() {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <header className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold">Dashboard</h2>
-          <p className="text-gray-500">
-            High-level overview for your customers.
+    <div
+      className="relative flex h-full items-center justify-center px-4 bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage: 'url("/high-voltage.jpg")', // <-- make sure the image is inside /public
+      }}
+    >
+      {/* Optional dark overlay for readability */}
+      <div className="absolute inset-0 bg-black/40"></div>
+
+      {/* Sign-in Card */}
+      <div className="relative w-full max-w-xl rounded-2xl bg-white/90 backdrop-blur-md p-10 shadow-xl border border-white/40 mt-10">
+        {/* Header */}
+        <div className="mb-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
+            Welcome
+          </p>
+          <h1 className="mt-3 text-3xl font-bold text-slate-900">
+            Nello Customer Portal
+          </h1>
+          <p className="mt-3 text-sm text-slate-700 leading-relaxed">
+            Access your Nello projects, poles, and shipment performance in one
+            secure place.
           </p>
         </div>
 
-        <div className="text-sm text-gray-500">
-          Logged in as <span className="font-medium">Customer Name</span>
-        </div>
-      </header>
-
-      {/* KPI Cards */}
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-lg bg-white p-4 shadow">
-          <div className="text-xs font-semibold uppercase text-gray-400">
-            Total Shipments
+        {/* Form */}
+        <div className="space-y-5">
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-slate-800">
+              Email
+            </label>
+            <input
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-600 focus:border-sky-600"
+              placeholder="you@customer.com"
+              type="email"
+            />
           </div>
-          <div className="mt-2 text-2xl font-semibold">123</div>
-          <div className="mt-1 text-xs text-gray-400">Last 30 days</div>
-        </div>
 
-        <div className="rounded-lg bg-white p-4 shadow">
-          <div className="text-xs font-semibold uppercase text-gray-400">
-            On-Time %
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-slate-800">
+              Password
+            </label>
+            <input
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-600 focus:border-sky-600"
+              placeholder="••••••••"
+              type="password"
+            />
           </div>
-          <div className="mt-2 text-2xl font-semibold">96.4%</div>
-          <div className="mt-1 text-xs text-gray-400">Rolling 3 months</div>
-        </div>
 
-        <div className="rounded-lg bg-white p-4 shadow">
-          <div className="text-xs font-semibold uppercase text-gray-400">
-            Open Claims
+          {/* Sign-in button */}
+          <button
+            className="mt-2 w-full rounded-md bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-sky-800 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-700 focus:ring-offset-white"
+            onClick={() => {
+              window.location.href = "/dashboard";
+            }}
+          >
+            Sign In
+          </button>
+
+          {/* Demo message */}
+          <div className="mt-4 flex items-start gap-2 text-xs text-slate-600">
+            <span className="mt-[3px] text-sky-400">•</span>
+            <p>
+              This is a demo login for preview purposes. In the production
+              version, dashboard and reports would require authentication.
+            </p>
           </div>
-          <div className="mt-2 text-2xl font-semibold">4</div>
-          <div className="mt-1 text-xs text-gray-400">
-            Awaiting resolution
+
+          {/* Info */}
+          <div className="mt-5 border-t border-slate-200 pt-3 text-xs text-slate-600 flex items-center justify-between">
+            <span>Need access?</span>
+            <a
+              href="https://www.nelloinc.com/contact.cfm"
+              target="_blank"
+              rel="noreferrer"
+              className="text-sky-700 hover:text-sky-900 font-medium"
+            >
+              Contact Nello support
+            </a>
           </div>
         </div>
-      </section>
-
-      {/* Embedded dashboard placeholder */}
-      <section className="rounded-lg bg-white p-6 shadow">
-        <h3 className="mb-2 text-xl font-semibold">Performance Overview</h3>
-        <p className="mb-4 text-sm text-gray-500">
-          This is where your embedded analytics (Power BI or Metabase) will live.
-        </p>
-
-        <div className="flex h-[450px] items-center justify-center rounded-lg border-2 border-dashed border-gray-300">
-          <span className="text-sm text-gray-400">
-            Embedded dashboard placeholder
-          </span>
-        </div>
-      </section>
+      </div>
     </div>
   );
 }
