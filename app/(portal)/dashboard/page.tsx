@@ -1,4 +1,37 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+
 export default function DashboardPage() {
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    async function loadUser() {
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error || !data?.user) {
+        // Not logged in – send back to sign in
+        window.location.href = "/";
+        return;
+      }
+
+      setUserEmail(data.user.email ?? null);
+      setCheckingAuth(false);
+    }
+
+    loadUser();
+  }, []);
+
+  if (checkingAuth) {
+    return (
+      <div className="p-8">
+        <p className="text-sm text-slate-500">Loading dashboard…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-8 fade-in-up">
       {/* Header */}
@@ -22,7 +55,9 @@ export default function DashboardPage() {
           </span>
           <div className="text-xs text-slate-500">
             Logged in as{" "}
-            <span className="font-medium text-slate-900">Demo Customer</span>
+            <span className="font-medium text-slate-900">
+              {userEmail ?? "Demo Customer"}
+            </span>
           </div>
         </div>
       </header>

@@ -1,11 +1,40 @@
 "use client";
 
+import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+
+
 export default function HomePage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function handleSignIn() {
+    setErrorMessage("");
+    setIsLoading(true);
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      setErrorMessage(error.message || "Unable to sign in.");
+      return;
+    }
+
+    // On success, send them to the dashboard
+    window.location.href = "/dashboard";
+  }
+
   return (
     <div
       className="relative flex h-full items-center justify-center px-4 bg-cover bg-center bg-no-repeat bg-fixed"
       style={{
-        backgroundImage: 'url("/high-voltage.jpg")', // in /public
+        backgroundImage: 'url("/high-voltage.jpg")', // image in /public
       }}
     >
       {/* Dark overlay for readability */}
@@ -42,6 +71,8 @@ export default function HomePage() {
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-600 focus:border-sky-600"
               placeholder="you@customer.com"
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
@@ -53,18 +84,23 @@ export default function HomePage() {
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-600 focus:border-sky-600"
               placeholder="••••••••"
               type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
           {/* Sign-in button */}
           <button
-            className="mt-2 w-full rounded-md bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-sky-800 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-700 focus:ring-offset-white"
-            onClick={() => {
-              window.location.href = "/dashboard";
-            }}
+            className="mt-2 w-full rounded-md bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-sky-800 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-700 focus:ring-offset-white disabled:opacity-60 disabled:cursor-not-allowed"
+            onClick={handleSignIn}
+            disabled={isLoading}
           >
-            Sign In
+            {isLoading ? "Signing in..." : "Sign In"}
           </button>
+
+          {errorMessage && (
+            <p className="mt-2 text-xs text-red-600">{errorMessage}</p>
+          )}
 
           {/* Demo message */}
           <div className="mt-4 flex items-start gap-2 text-xs text-slate-600">
