@@ -1,127 +1,230 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
+type ShipmentRow = {
+  shipment_key: string;
+  customer_id: string;
+  departure_datetime: string | null;
+  payload: Record<string, any>;
+};
+
+function formatValue(v: any) {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean")
+    return String(v);
+
+  try {
+    const s = JSON.stringify(v);
+    return s.length > 140 ? s.slice(0, 140) + "…" : s;
+  } catch {
+    return String(v);
+  }
+}
+
+// Columns you WANT to show (first-pass “nice” view)
+const PRIMARY_COLUMNS: string[] = [
+  "CustomerName",
+  "CustomerStatus",
+  "LastStatus",
+  "DepartureDateTime",
+  "TimeInTransitHours",
+  "QuoteNumber",
+  "SalesOrderID",
+  "truck_header_BOLNum",
+  "truck_header_consingedto",
+  "truck_header_destinationcitystatezip",
+  "truck_header_destinationaddress",
+  "truck_header_shippernum",
+  "truck_header_departdate",
+  "truck_header_departuretime",
+  "truck_header_arrivaltime",
+  "truck_header_deliverytime",
+  "LastQueued",
+  "LastInsp",
+];
+
+// Columns to always hide (since you said they’re null / not needed right now)
+const ALWAYS_HIDE: string[] = ["ArrivalDateTime", "DeliveryDate", "CustomerID"];
+
 export default function DashboardPage() {
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [rows, setRows] = useState<ShipmentRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string>("");
+  const [colSearch, setColSearch] = useState("");
+  const [showAllColumns, setShowAllColumns] = useState(false);
 
   useEffect(() => {
-    async function loadUser() {
-      const { data, error } = await supabase.auth.getUser();
+    async function load() {
+      setErr("");
+      setLoading(true);
 
-      if (error || !data?.user) {
-        // Not logged in – send back to sign in
-        window.location.href = "/";
+      const { data, error } = await supabase
+        .from("customer_shipments_raw")
+        .select("shipment_key, customer_id, departure_datetime, payload")
+        .order("departure_datetime", { ascending: false })
+        .limit(200);
+
+      if (error) {
+        setErr(error.message);
+        setRows([]);
+        setLoading(false);
         return;
       }
 
-      setUserEmail(data.user.email ?? null);
-      setCheckingAuth(false);
+      setRows((data as ShipmentRow[]) ?? []);
+      setLoading(false);
     }
 
-    loadUser();
+    load();
   }, []);
 
-  if (checkingAuth) {
-    return (
-      <div className="p-8">
-        <p className="text-sm text-slate-500">Loading dashboard…</p>
-      </div>
-    );
-  }
+  // Discover all possible payload keys (for debugging / search)
+  const allPayloadKeys = useMemo(() => {
+    const keySet = new Set<string>();
+    for (const r of rows) {
+      const p = r?.payload;
+      if (p && typeof p === "object") {
+        Object.keys(p).forEach((k) => keySet.add(k));
+      }
+    }
+    return Array.from(keySet).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
+
+  // Decide which columns to show in the table
+  const tableColumns = useMemo(() => {
+    const search = colSearch.trim().toLowerCase();
+
+    // Start from curated columns
+    let cols = PRIMARY_COLUMNS.filter((c) => !ALWAYS_HIDE.includes(c));
+
+    // If "show all" enabled, append every other column we find
+    if (showAllColumns) {
+      const extras = allPayloadKeys
+        .filter((k) => !ALWAYS_HIDE.includes(k))
+        .filter((k) => !cols.includes(k));
+      cols = [...cols, ...extras];
+    }
+
+    // Apply search filter
+    if (search) {
+      cols = cols.filter((k) => k.toLowerCase().includes(search));
+    }
+
+    // Also remove any that literally don't exist in the dataset yet (optional)
+    // (If you want to keep them regardless, delete this block)
+    const present = new Set<string>();
+    rows.forEach((r) => {
+      Object.keys(r.payload || {}).forEach((k) => present.add(k));
+    });
+    cols = cols.filter((k) => present.has(k));
+
+    return cols;
+  }, [allPayloadKeys, colSearch, rows, showAllColumns]);
 
   return (
     <div className="space-y-6 p-8 fade-in-up">
       {/* Header */}
-      <header className="flex items-center justify-between">
+      <header className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-600">
-            Overview
+            Dashboard
           </p>
           <h2 className="mt-1 text-3xl font-bold text-slate-900">
-            Customer Dashboard
+            Shipments
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            High-level view of your Nello orders, quotes, and engineering
-            activity.
+            Shipment table filtered automatically to the signed-in customer.
           </p>
         </div>
 
-        <div className="flex flex-col items-end gap-1 text-right">
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-            Demo Mode
-          </span>
+        <div className="flex flex-col gap-2 md:items-end">
           <div className="text-xs text-slate-500">
-            Logged in as{" "}
-            <span className="font-medium text-slate-900">
-              {userEmail ?? "Demo Customer"}
+            Rows loaded:{" "}
+            <span className="font-semibold text-slate-700">{rows.length}</span>
+            {" • "}
+            Columns:{" "}
+            <span className="font-semibold text-slate-700">
+              {tableColumns.length}
             </span>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input
+              value={colSearch}
+              onChange={(e) => setColSearch(e.target.value)}
+              placeholder="Search columns…"
+              className="w-full sm:w-[240px] rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-600 focus:border-sky-600"
+            />
+
+            <label className="flex items-center gap-2 text-sm text-slate-700 select-none">
+              <input
+                type="checkbox"
+                checked={showAllColumns}
+                onChange={(e) => setShowAllColumns(e.target.checked)}
+                className="h-4 w-4"
+              />
+              Show all columns
+            </label>
           </div>
         </div>
       </header>
 
-      {/* KPI Cards */}
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-lg bg-white p-4 shadow border border-slate-100">
-          <div className="text-xs font-semibold uppercase text-slate-400">
-            Total Shipments (Last 30 days)
+      {/* Table */}
+      <section className="rounded-lg border border-slate-200 bg-white shadow overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+          <div className="text-sm font-semibold text-slate-900">
+            Shipment Rows
           </div>
-          <div className="mt-2 text-2xl font-semibold text-slate-900">123</div>
-          <div className="mt-2 h-1.5 rounded-full bg-slate-100">
-            <div className="h-full w-3/4 rounded-full bg-sky-600" />
-          </div>
-          <div className="mt-1 text-xs text-slate-400">
-            18 in transit • 3 delayed
+          <div className="text-xs text-slate-500">
+            (We’ll curate this layout further once KPIs + final columns are confirmed.)
           </div>
         </div>
 
-        <div className="rounded-lg bg-white p-4 shadow border border-slate-100">
-          <div className="text-xs font-semibold uppercase text-slate-400">
-            On-Time Delivery
+        {loading ? (
+          <div className="p-6 text-sm text-slate-500">Loading…</div>
+        ) : err ? (
+          <div className="p-6 text-sm text-red-600">Error: {err}</div>
+        ) : rows.length === 0 ? (
+          <div className="p-6 text-sm text-slate-500">
+            No rows returned. If you expected data, confirm your user is mapped in
+            <span className="font-semibold"> portal_user_customer</span>.
           </div>
-          <div className="mt-2 text-2xl font-semibold text-slate-900">
-            96.4%
-          </div>
-          <div className="mt-2 h-1.5 rounded-full bg-slate-100">
-            <div className="h-full w-[96%] rounded-full bg-emerald-500" />
-          </div>
-          <div className="mt-1 text-xs text-slate-400">
-            Rolling 3-month performance
-          </div>
-        </div>
+        ) : (
+          <div className="overflow-auto">
+            <table className="min-w-full text-xs">
+              <thead className="bg-slate-50 text-slate-600">
+                <tr>
+                  {tableColumns.map((k) => (
+                    <th
+                      key={k}
+                      className="px-3 py-2 text-left font-semibold whitespace-nowrap"
+                      title={k}
+                    >
+                      {k}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
 
-        <div className="rounded-lg bg-white p-4 shadow border border-slate-100">
-          <div className="text-xs font-semibold uppercase text-slate-400">
-            Open Issues
+              <tbody className="divide-y divide-slate-200">
+                {rows.map((r) => (
+                  <tr key={r.shipment_key} className="hover:bg-slate-50">
+                    {tableColumns.map((k) => (
+                      <td
+                        key={k}
+                        className="px-3 py-2 whitespace-nowrap text-slate-800"
+                      >
+                        {formatValue(r.payload?.[k])}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="mt-2 text-2xl font-semibold text-slate-900">4</div>
-          <div className="mt-2 h-1.5 rounded-full bg-slate-100">
-            <div className="h-full w-1/4 rounded-full bg-amber-500" />
-          </div>
-          <div className="mt-1 text-xs text-slate-400">
-            Example only – claims, RFIs, or holds.
-          </div>
-        </div>
-      </section>
-
-      {/* Embedded dashboard placeholder */}
-      <section className="rounded-lg bg-white p-6 shadow border border-slate-100">
-        <h3 className="mb-2 text-xl font-semibold text-slate-900">
-          Performance Overview
-        </h3>
-        <p className="mb-4 text-sm text-slate-500">
-          This is where Nello&apos;s embedded analytics (Power BI or Metabase)
-          will be displayed for each customer: order status, shipping
-          performance, finish quotes, and engineering deliverables.
-        </p>
-
-        <div className="flex h-[450px] items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
-          <span className="text-sm text-slate-400">
-            Embedded dashboard placeholder – future Power BI / Metabase embed.
-          </span>
-        </div>
+        )}
       </section>
     </div>
   );
